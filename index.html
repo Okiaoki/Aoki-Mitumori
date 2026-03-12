@@ -362,7 +362,6 @@
                 class="form-input discount-code-input"
                 placeholder="例: OPEN2024"
                 autocomplete="off"
-                aria-label="割引コード"
               />
               <button id="btnApplyDiscount" class="btn btn--outline btn--sm" data-i18n="discount.btn">適用</button>
             </div>
@@ -384,7 +383,7 @@
     <!-- ============================================================
          3. 見積結果パネル
     ============================================================ -->
-    <section id="result" class="result hidden" aria-label="見積結果" aria-live="polite">
+    <section id="result" class="result hidden" aria-label="見積結果">
       <div class="container">
         <header class="section-header">
           <p class="section-header__label" data-i18n="result.label">Estimate Result</p>
@@ -394,14 +393,14 @@
         <div class="result__body">
 
           <!-- 合計金額 -->
-          <div class="result__total-card">
+          <div class="result__total-card" aria-live="polite" aria-atomic="true">
             <p class="result__total-label" data-i18n="result.totalLabel">概算合計金額</p>
             <p class="result__total-amount" id="resultTotal">---</p>
             <p class="result__total-days"><span data-i18n="result.days">推定納期：</span><span id="resultDays">---</span></p>
             <p class="result__total-note" data-i18n="result.note">※ 正式なお見積もりはヒアリング後にご提示いたします</p>
           </div>
 
-          <!-- 内訳 -->
+          <!-- 費用内訳 -->
           <div class="result__breakdown-card">
             <h3 class="result__card-title" data-i18n="result.breakdown">費用内訳</h3>
             <table class="breakdown-table">
@@ -411,6 +410,24 @@
               <tbody id="resultBreakdown">
               </tbody>
             </table>
+          </div>
+
+          <!-- 納期内訳 -->
+          <div class="result__breakdown-card">
+            <h3 class="result__card-title" data-i18n="result.daysBreakdown">納期内訳</h3>
+            <table class="breakdown-table">
+              <thead>
+                <tr><th scope="col" data-i18n="result.breakdown.item">項目</th><th scope="col" data-i18n="result.daysBreakdown.days">日数</th></tr>
+              </thead>
+              <tbody id="resultDaysBreakdown">
+              </tbody>
+            </table>
+          </div>
+
+          <!-- 概算注記 -->
+          <div class="result__notes-card">
+            <p class="result__disclaimer" id="resultDisclaimer">※ こちらは概算見積です。正式なお見積りはヒアリング後にご提示いたします。</p>
+            <p class="result__includes" id="resultIncludes">含まれるもの：デザイン・コーディング・基本テスト・納品後サポート（30日間）</p>
           </div>
 
           <!-- おすすめプラン -->
@@ -465,20 +482,27 @@
           </div>
         </div>
 
-        <!-- アクションボタン -->
-        <div class="result__actions">
-          <button id="btnConsult" class="btn btn--primary btn--lg" data-i18n="btn.consult">この内容で相談する</button>
-          <button id="btnPdf" class="btn btn--outline btn--lg" aria-label="見積もり結果をPDFとしてダウンロード" data-i18n="btn.pdf">PDFで保存</button>
-          <button id="btnShare" class="btn btn--outline btn--lg" aria-label="見積もり結果のURLをクリップボードにコピー" data-i18n="btn.share">URLをシェア</button>
-          <button id="btnRetry" class="btn btn--ghost btn--lg" data-i18n="btn.retry">もう一度試す</button>
+        <!-- 主役アクション：相談導線 -->
+        <div class="result__actions-primary">
+          <button id="btnConsult" class="btn btn--primary btn--lg btn--block" data-i18n="btn.consult">この内容で相談する</button>
         </div>
 
-        <!-- A/B比較保存・表示ボタン -->
-        <div class="result__compare-actions">
-          <button id="btnSaveCompareA" class="btn btn--outline btn--sm" data-i18n="btn.saveA">Aパターンに保存</button>
-          <button id="btnSaveCompareB" class="btn btn--outline btn--sm" data-i18n="btn.saveB">Bパターンに保存</button>
-          <button id="btnShowCompare"  class="btn btn--primary btn--sm" disabled>比較表示（あと2件保存）</button>
+        <!-- 脇役アクション：保存・共有・やり直し -->
+        <div class="result__actions-secondary">
+          <button id="btnPdf" class="btn btn--outline btn--sm" aria-label="見積もり結果をPDFとしてダウンロード" data-i18n="btn.pdf">PDFで保存</button>
+          <button id="btnShare" class="btn btn--outline btn--sm" aria-label="見積もり結果のURLをクリップボードにコピー" data-i18n="btn.share">URLをシェア</button>
+          <button id="btnRetry" class="btn btn--ghost btn--sm" data-i18n="btn.retry">もう一度試す</button>
         </div>
+
+        <!-- 上級者向け：A/B比較（折りたたみ） -->
+        <details class="result__compare-details">
+          <summary class="result__compare-summary" data-i18n="result.compare.toggle">見積もりを比較する（上級）</summary>
+          <div class="result__compare-actions">
+            <button id="btnSaveCompareA" class="btn btn--outline btn--sm" data-i18n="btn.saveA">Aパターンに保存</button>
+            <button id="btnSaveCompareB" class="btn btn--outline btn--sm" data-i18n="btn.saveB">Bパターンに保存</button>
+            <button id="btnShowCompare"  class="btn btn--primary btn--sm" disabled>比較表示（あと2件保存）</button>
+          </div>
+        </details>
 
       </div><!-- /.container -->
     </section>
@@ -800,6 +824,12 @@
           <!-- reCAPTCHAトークン -->
           <input type="hidden" id="recaptchaToken" name="recaptchaToken" />
 
+          <!-- 見積内容プレビュー（シミュレーターから遷移時に表示） -->
+          <div id="quotePreviewBanner" class="quote-preview-banner hidden" role="status">
+            <p class="quote-preview-banner__title">📋 シミュレーターの見積内容が含まれています</p>
+            <p class="quote-preview-banner__summary" id="quotePreviewText"></p>
+          </div>
+
           <div class="form-group">
             <label class="form-label" for="field-name">
               <span data-i18n="form.name">お名前</span> <span class="form-label__required" aria-label="必須" data-i18n="form.required">必須</span>
@@ -957,6 +987,7 @@
   <!-- jsPDF (PDF出力) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <!-- アプリ JS（依存順） -->
+  <script src="js/storage.js"></script>
   <script src="js/errorTracking.js"></script>
   <script src="js/analytics.js"></script>
   <script src="js/abtest.js"></script>

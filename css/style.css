@@ -1016,6 +1016,50 @@ ul, ol { list-style: none; }
 .result__plan-desc { font-size: var(--text-sm); color: var(--color-text-sub); line-height: 1.8; }
 .result__expiry { text-align: center; font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--space-6); }
 
+/* 概算注記カード */
+.result__notes-card {
+  background: var(--color-accent-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-6);
+  border-left: 4px solid var(--color-accent);
+}
+.result__disclaimer {
+  font-size: var(--text-sm);
+  color: var(--color-text-sub);
+  margin-bottom: var(--space-3);
+  font-weight: 600;
+}
+.result__includes {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  line-height: 1.7;
+}
+
+/* 割引行 */
+.breakdown-discount td { color: var(--color-accent-dark); }
+.breakdown-discount td:last-child { color: var(--color-accent-dark); }
+
+/* 見積プレビューバナー（フォーム内） */
+.quote-preview-banner {
+  background: var(--color-accent-light);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-6);
+}
+.quote-preview-banner__title {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-navy);
+  margin-bottom: var(--space-2);
+}
+.quote-preview-banner__summary {
+  font-size: var(--text-xs);
+  color: var(--color-text-sub);
+  white-space: pre-line;
+  line-height: 1.7;
+}
+
 /* 比較パネル */
 .compare-panel {
   margin-top: var(--space-8);
@@ -1044,13 +1088,42 @@ ul, ol { list-style: none; }
 .result__email-form { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .result__email-input { flex: 1; min-width: 200px; }
 
-/* アクションボタン */
-.result__actions, .result__compare-actions {
+/* 主役アクション：相談導線（最大幅制限で目立たせる） */
+.result__actions-primary {
+  margin-top: var(--space-10);
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* 脇役アクション：保存・共有 */
+.result__actions-secondary {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
   justify-content: center;
-  margin-top: var(--space-10);
+  margin-top: var(--space-5);
+}
+
+/* 上級者向け：比較機能（折りたたみ） */
+.result__compare-details {
+  margin-top: var(--space-6);
+  text-align: center;
+}
+.result__compare-summary {
+  cursor: pointer;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  user-select: none;
+  padding: var(--space-2) var(--space-4);
+}
+.result__compare-summary:hover { color: var(--color-text-sub); }
+.result__compare-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: center;
+  margin-top: var(--space-4);
 }
 
 /* ─── サービスセクション ─────────────────────────────────── */
@@ -1758,6 +1831,14 @@ ul, ol { list-style: none; }
 [data-theme="dark"] body {
   background-color: var(--color-bg);
 }
+[data-theme="dark"] .result__notes-card {
+  background: rgba(200,150,46,0.10);
+  border-left-color: var(--color-accent-dark);
+}
+[data-theme="dark"] .quote-preview-banner {
+  background: rgba(200,150,46,0.10);
+  border-color: var(--color-accent-dark);
+}
 
 /* ─── アニメーション（スクロールトリガー用） ──────────────── */
 @keyframes revealFadeUp {
@@ -1787,8 +1868,8 @@ ul, ol { list-style: none; }
   .radio-group, .checkbox-group { grid-template-columns: 1fr 1fr; }
 
   .result__body { grid-template-columns: 1fr; }
-  .result__actions, .result__compare-actions { flex-direction: column; }
-  .result__actions .btn { width: 100%; }
+  .result__actions-secondary, .result__compare-actions { flex-direction: column; }
+  .result__actions-secondary .btn, .result__compare-actions .btn { width: 100%; }
 
   .service__grid { grid-template-columns: 1fr 1fr; }
 

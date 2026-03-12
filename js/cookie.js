@@ -105,6 +105,30 @@ function initCookieBanner() {
 
   if (btnAll) btnAll.addEventListener("click", handleAcceptAll);
   if (btnNec) btnNec.addEventListener("click", handleAcceptNecessary);
+
+  // フォーカストラップ（バナー内にTabを閉じ込める）
+  const banner = document.getElementById("cookieBanner");
+  if (banner) {
+    banner.addEventListener("keydown", (e) => {
+      if (e.key !== "Tab") return;
+      const focusable = banner.querySelectorAll("button, a[href]");
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    });
+    // バナー表示時に最初のボタンにフォーカス
+    setTimeout(() => {
+      const firstBtn = banner.querySelector("button");
+      if (firstBtn && banner.classList.contains("visible")) firstBtn.focus();
+    }, 900);
+  }
 }
 
 document.addEventListener("DOMContentLoaded", initCookieBanner);

@@ -3,48 +3,29 @@
  * URL共有機能（クエリパラメータ）・LocalStorage保存・状態復元
  */
 
-const STORAGE_KEY = "ads_simulator_state";
+// ─── LocalStorage（storage.js統一ユーティリティ経由） ─────
 
-// ─── LocalStorage ─────────────────────────────────────────
-
-/** 現在の選択状態をLocalStorageに保存 */
+/** 現在の選択状態をLocalStorageに保存（7日期限） */
 function saveStateToStorage(selections) {
-  try {
-    const data = {
-      siteTypeId:  selections.siteType?.id  ?? null,
-      pageCountId: selections.pageCount?.id ?? null,
-      optionIds:   selections.options.map((o) => o.id),
-      urgencyId:   selections.urgency?.id   ?? null,
-      savedAt:     Date.now(),
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (e) {
-    // プライベートブラウジング等でlocalStorage使用不可の場合は無視
-  }
+  if (typeof storageSave !== "function") return;
+  storageSave("simulator_state", {
+    siteTypeId:  selections.siteType?.id  ?? null,
+    pageCountId: selections.pageCount?.id ?? null,
+    optionIds:   selections.options.map((o) => o.id),
+    urgencyId:   selections.urgency?.id   ?? null,
+  }, 7);
 }
 
 /** LocalStorageから状態を読み込む（IDのみ返す） */
 function loadStateFromStorage() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const data = JSON.parse(raw);
-    // 7日以上前のデータは破棄
-    if (Date.now() - data.savedAt > 7 * 86400000) {
-      localStorage.removeItem(STORAGE_KEY);
-      return null;
-    }
-    return data;
-  } catch (e) {
-    return null;
-  }
+  if (typeof storageLoad !== "function") return null;
+  return storageLoad("simulator_state");
 }
 
 /** LocalStorageの状態を削除 */
 function clearStateFromStorage() {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch (e) {}
+  if (typeof storageRemove !== "function") return;
+  storageRemove("simulator_state");
 }
 
 // ─── URL共有 ──────────────────────────────────────────────

@@ -220,18 +220,13 @@ function initThemeToggle() {
   });
 }
 
-// ─── 言語ヘルパー ─────────────────────────────────────────
-
-/** 現在の言語に応じてitem.labelEnまたはitem.labelを返す */
+// ─── 言語ヘルパー（共通ヘルパーへの参照） ────────────────
+// pricingData.js で定義した _i18nLabel / _i18nDesc を利用
 function _label(item) {
-  const lang = typeof getCurrentLang === "function" ? getCurrentLang() : "ja";
-  return (lang === "en" && item.labelEn) ? item.labelEn : item.label;
+  return typeof _i18nLabel === "function" ? _i18nLabel(item) : item.label;
 }
-
-/** 現在の言語に応じてitem.descriptionEnまたはitem.descriptionを返す */
 function _desc(item) {
-  const lang = typeof getCurrentLang === "function" ? getCurrentLang() : "ja";
-  return (lang === "en" && item.descriptionEn) ? item.descriptionEn : item.description;
+  return typeof _i18nDesc === "function" ? _i18nDesc(item) : item.description;
 }
 
 /** 推奨ラベル文字列を返す */

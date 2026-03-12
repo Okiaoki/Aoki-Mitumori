@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>管理ダッシュボード | Aoki Design Studio</title>
+  <title>管理ダッシュボード（デモ） | Aoki Design Studio</title>
   <meta name="robots" content="noindex, nofollow" />
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -142,6 +142,14 @@
     .variant-badge--control    { background: #e0e7ff; color: #3730a3; }
     .variant-badge--challenger { background: var(--color-accent-light); color: var(--color-accent); }
     .abtest-note { font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--space-4); line-height: 1.7; }
+
+    /* ─── デモ免責バナー ── */
+    .demo-banner {
+      background: #fef3c7; color: #92400e; font-size: var(--text-xs);
+      text-align: center; padding: var(--space-2) var(--space-4);
+      line-height: 1.6; border-bottom: 1px solid #fbbf24;
+    }
+    .demo-banner strong { font-weight: 700; }
   </style>
 </head>
 <body class="admin-body">
@@ -150,7 +158,8 @@
   <div id="loginScreen" class="admin-login">
     <div class="admin-login__box">
       <h1 class="admin-login__title">Admin</h1>
-      <p class="admin-login__sub">Aoki Design Studio 管理ダッシュボード</p>
+      <p class="admin-login__sub">Aoki Design Studio 管理ダッシュボード（デモ）</p>
+      <p style="font-size:var(--text-xs);color:var(--color-text-muted);margin-bottom:var(--space-4);line-height:1.6">このダッシュボードはクライアントサイド（localStorage）のみで動作するデモです。<br>本番運用にはサーバーサイド管理画面の構築が必要です。</p>
       <div class="form-group">
         <label class="form-label" for="adminPassword">パスワード</label>
         <input type="password" id="adminPassword" class="form-input" placeholder="管理者パスワードを入力" autocomplete="current-password" />
@@ -163,9 +172,10 @@
   <!-- ─── 管理ダッシュボード ─────────────────────────────── -->
   <div id="dashboard" class="hidden">
 
+    <div class="demo-banner"><strong>DEMO</strong> — この管理画面はlocalStorage上のデモです。データはブラウザ内にのみ保存され、サーバーには送信されません。</div>
     <header class="admin-header" role="banner">
       <div>
-        <p class="admin-header__title">Aoki Design Studio — 管理ダッシュボード</p>
+        <p class="admin-header__title">Aoki Design Studio — 管理ダッシュボード（デモ）</p>
         <p class="admin-header__meta" id="adminMeta"></p>
       </div>
       <div class="admin-header__actions">

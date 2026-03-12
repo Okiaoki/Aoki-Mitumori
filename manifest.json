@@ -5,15 +5,15 @@
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#FAFAF7",
-  "theme_color": "#2C2622",
+  "background_color": "#F7F5F0",
+  "theme_color": "#162037",
   "lang": "ja",
   "icons": [
     {
       "src": "assets/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "assets/favicon-32.png",
@@ -26,6 +26,5 @@
       "type": "image/png"
     }
   ],
-  "categories": ["business", "utilities"],
-  "screenshots": []
+  "categories": ["business", "utilities"]
 }

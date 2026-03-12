@@ -4,14 +4,15 @@
  * オフライン対応・キャッシュ戦略: Cache First（静的アセット）+ Network First（ページ）
  */
 
-const CACHE_NAME    = "ads-simulator-v2";
-const CACHE_VERSION = 2;
+const CACHE_NAME    = "ads-simulator-v2.1";
+const CACHE_VERSION = 3;
 
 /** キャッシュ対象（静的アセット） */
 const STATIC_ASSETS = [
   "/",
   "/index.html",
   "/css/style.css",
+  "/js/storage.js",
   "/js/emailjs-config.js",
   "/js/analytics.js",
   "/js/share.js",

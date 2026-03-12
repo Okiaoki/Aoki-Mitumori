@@ -1,5 +1,10 @@
 User-agent: *
 Allow: /
-Disallow: /assets/
+
+# 管理画面はクロール対象外
+Disallow: /admin.html
+
+# JS/CSSは許可（レンダリングに必要）
+# assets/はOGP画像・faviconが含まれるため許可
 
 Sitemap: https://aoki-design-studio.com/sitemap.xml

@@ -311,6 +311,7 @@ async function handleConfirmSend() {
 
     // GA4トラッキング
     if (typeof trackFormSubmit === "function") trackFormSubmit(true);
+    if (typeof trackABFormConversion === "function") trackABFormConversion();
 
     // 成功
     switchPanel("formConfirm", "hidden");
@@ -333,9 +334,13 @@ async function handleConfirmSend() {
 function handleFormSubmit(e) {
   e.preventDefault();
   if (!validateAllFields()) {
-    // 最初のエラーフィールドにフォーカス
+    // 最初のエラーフィールドにスクロール＆フォーカス
     const firstError = document.querySelector(".form-input.error, input.error");
-    if (firstError) firstError.focus();
+    if (firstError) {
+      firstError.scrollIntoView({ behavior: "smooth", block: "center" });
+      // スクロール完了後にフォーカス（scrollIntoViewとfocusの競合回避）
+      setTimeout(() => firstError.focus(), 300);
+    }
     return;
   }
   showConfirmScreen();

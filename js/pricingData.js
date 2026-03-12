@@ -46,24 +46,24 @@ const pricingData = {
   ],
 
   pageCountOptions: [
-    { id: "1p",      label: "1ページ",      labelEn: "1 Page",      description: "LP・シングルページ向け",  descriptionEn: "For LP or single-page sites.",  multiplier: 1.0 },
-    { id: "3-5p",    label: "3〜5ページ",   labelEn: "3–5 Pages",   description: "小規模サイト向け",        descriptionEn: "For small sites.",              multiplier: 1.5 },
-    { id: "6-10p",   label: "6〜10ページ",  labelEn: "6–10 Pages",  description: "中規模サイト向け",        descriptionEn: "For medium sites.",             multiplier: 2.2 },
-    { id: "11p-plus",label: "11ページ以上", labelEn: "11+ Pages",   description: "大規模サイト向け",        descriptionEn: "For large sites.",              multiplier: 3.0 },
+    { id: "1p",      label: "1ページ",      labelEn: "1 Page",      description: "LP・シングルページ向け",  descriptionEn: "For LP or single-page sites.",  multiplier: 1.0, dayImpact: 0 },
+    { id: "3-5p",    label: "3〜5ページ",   labelEn: "3–5 Pages",   description: "小規模サイト向け",        descriptionEn: "For small sites.",              multiplier: 1.5, dayImpact: 5 },
+    { id: "6-10p",   label: "6〜10ページ",  labelEn: "6–10 Pages",  description: "中規模サイト向け",        descriptionEn: "For medium sites.",             multiplier: 2.2, dayImpact: 12 },
+    { id: "11p-plus",label: "11ページ以上", labelEn: "11+ Pages",   description: "大規模サイト向け",        descriptionEn: "For large sites.",              multiplier: 3.0, dayImpact: 22 },
   ],
 
   options: [
-    { id: "form",       label: "お問い合わせフォーム", labelEn: "Contact Form",          description: "入力バリデーション付きの問い合わせフォーム",     descriptionEn: "Inquiry form with input validation.",                   price: 30000 },
-    { id: "cms",        label: "CMS導入",              labelEn: "CMS Setup",             description: "WordPressなどによるコンテンツ管理システム",       descriptionEn: "Content management system (e.g. WordPress).",           price: 80000 },
-    { id: "responsive", label: "レスポンシブ対応",     labelEn: "Responsive Design",     description: "スマートフォン・タブレット最適化",               descriptionEn: "Smartphone & tablet optimization.",                     price: 50000 },
-    { id: "seo",        label: "SEO基礎設定",          labelEn: "Basic SEO Setup",       description: "メタタグ・構造化データ・サイトマップ設定",       descriptionEn: "Meta tags, structured data & sitemap configuration.",   price: 40000 },
-    { id: "sns",        label: "SNS連携",              labelEn: "Social Media Integration", description: "OGP設定・シェアボタン・SNSフィード埋め込み", descriptionEn: "OGP settings, share buttons & SNS feed embedding.",     price: 25000 },
+    { id: "form",       label: "お問い合わせフォーム", labelEn: "Contact Form",          description: "入力バリデーション付きの問い合わせフォーム",     descriptionEn: "Inquiry form with input validation.",                   price: 30000, dayImpact: 2 },
+    { id: "cms",        label: "CMS導入",              labelEn: "CMS Setup",             description: "WordPressなどによるコンテンツ管理システム",       descriptionEn: "Content management system (e.g. WordPress).",           price: 80000, dayImpact: 5 },
+    { id: "responsive", label: "レスポンシブ対応",     labelEn: "Responsive Design",     description: "スマートフォン・タブレット最適化",               descriptionEn: "Smartphone & tablet optimization.",                     price: 50000, dayImpact: 3 },
+    { id: "seo",        label: "SEO基礎設定",          labelEn: "Basic SEO Setup",       description: "メタタグ・構造化データ・サイトマップ設定",       descriptionEn: "Meta tags, structured data & sitemap configuration.",   price: 40000, dayImpact: 2 },
+    { id: "sns",        label: "SNS連携",              labelEn: "Social Media Integration", description: "OGP設定・シェアボタン・SNSフィード埋め込み", descriptionEn: "OGP settings, share buttons & SNS feed embedding.",     price: 25000, dayImpact: 1 },
   ],
 
   urgencyOptions: [
-    { id: "normal",  label: "通常",              labelEn: "Standard",                description: "納期目安通りの進行",                        descriptionEn: "Normal delivery timeline.",                              multiplier: 1.0, dayMultiplier: 1.0 },
-    { id: "rush",    label: "急ぎ（-30%短縮）",  labelEn: "Rush (−30% shorter)",    description: "標準納期より30%短縮 / 割増料金30%",          descriptionEn: "30% shorter than standard / 30% surcharge.",             multiplier: 1.3, dayMultiplier: 0.7 },
-    { id: "express", label: "特急（-50%短縮）",  labelEn: "Express (−50% shorter)", description: "標準納期より50%短縮 / 割増料金50%",          descriptionEn: "50% shorter than standard / 50% surcharge.",             multiplier: 1.5, dayMultiplier: 0.5 },
+    { id: "normal",  label: "通常",              labelEn: "Standard",                description: "納期目安通りの進行",                        descriptionEn: "Normal delivery timeline.",                              priceMultiplier: 1.0, dayMultiplier: 1.0, dayOffset: 0 },
+    { id: "rush",    label: "急ぎ（-30%短縮）",  labelEn: "Rush (−30% shorter)",    description: "標準納期より30%短縮 / 割増料金30%",          descriptionEn: "30% shorter than standard / 30% surcharge.",             priceMultiplier: 1.3, dayMultiplier: 0.7, dayOffset: 0 },
+    { id: "express", label: "特急（-50%短縮）",  labelEn: "Express (−50% shorter)", description: "標準納期より50%短縮 / 割増料金50%",          descriptionEn: "50% shorter than standard / 50% surcharge.",             priceMultiplier: 1.5, dayMultiplier: 0.5, dayOffset: -2 },
   ],
 
   recommendedPlans: [
@@ -270,3 +270,20 @@ const pricingData = {
     },
   ],
 };
+
+// ─── 共通 i18n ヘルパー（全JSから参照可能） ─────────────────
+/** 現在の言語に応じて label / labelEn を返す */
+function _i18nLabel(item) {
+  const lang = typeof getCurrentLang === "function" ? getCurrentLang() : "ja";
+  return (lang === "en" && item.labelEn) ? item.labelEn : item.label;
+}
+/** 現在の言語に応じて description / descriptionEn を返す */
+function _i18nDesc(item) {
+  const lang = typeof getCurrentLang === "function" ? getCurrentLang() : "ja";
+  return (lang === "en" && item.descriptionEn) ? item.descriptionEn : item.description;
+}
+/** 現在の言語に応じて name / nameEn を返す */
+function _i18nName(item) {
+  const lang = typeof getCurrentLang === "function" ? getCurrentLang() : "ja";
+  return (lang === "en" && item.nameEn) ? item.nameEn : item.name;
+}

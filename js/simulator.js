@@ -42,44 +42,147 @@ function applyDiscountCode(code) {
   if (!found) return { ok: false, message: "このコードは無効です" };
   appliedDiscount = found;
 
-  // 利用回数をLocalStorageに記録
-  try {
-    const key   = "ads_discount_usage";
-    const usage = JSON.parse(localStorage.getItem(key) || "{}");
+  // 利用回数を記録（90日期限）
+  if (typeof storageSave === "function" && typeof storageLoad === "function") {
+    const usage = storageLoad("discount_usage") || {};
     usage[found.code] = (usage[found.code] || 0) + 1;
-    localStorage.setItem(key, JSON.stringify(usage));
-  } catch (e) {}
+    storageSave("discount_usage", usage, 90);
+  }
 
   return { ok: true, message: `「${found.label}」が適用されました（${Math.round(found.discountRate * 100)}%割引）` };
 }
 
 // ─── 計算ロジック ──────────────────────────────────────────
-function calculatePrice() {
-  const { siteType, pageCount, options, urgency } = simulatorState.selections;
+
+/**
+ * 価格内訳を算出する（純粋関数）
+ * @returns {{ basePrice, pagePrice, optionPrice, urgencyPrice, discountAmount, totalPrice, breakdown }}
+ */
+function calculatePriceBreakdown(selections, discount) {
+  const { siteType, pageCount, options, urgency } = selections;
   if (!siteType) return null;
 
-  const baseSubtotal = siteType.basePrice * (pageCount ? pageCount.multiplier : 1);
-  const optionsTotal = options.reduce((sum, o) => sum + o.price, 0);
-  const urgencyMultiplier = urgency ? urgency.multiplier : 1;
-  const discountMultiplier = appliedDiscount ? (1 - appliedDiscount.discountRate) : 1;
-  const rawTotal = (baseSubtotal + optionsTotal) * urgencyMultiplier * discountMultiplier;
-  const total = Math.ceil(rawTotal / 1000) * 1000;
+  // 基本料金 = サイト種別のベース
+  const basePrice = siteType.basePrice;
 
-  const estimatedDays = urgency
-    ? Math.ceil(siteType.estimatedDays * urgency.dayMultiplier)
-    : siteType.estimatedDays;
+  // ページ数追加分 = (basePrice × multiplier) - basePrice
+  const pageMultiplier = pageCount ? pageCount.multiplier : 1;
+  const pagePrice = Math.round(basePrice * (pageMultiplier - 1));
+
+  // オプション追加分
+  const optionPrice = options.reduce((sum, o) => sum + o.price, 0);
+
+  // 小計（特急割増計算のベース）
+  const subtotal = basePrice + pagePrice + optionPrice;
+
+  // 特急割増 = 小計 × (倍率 - 1)
+  const urgencyMultiplier = urgency ? urgency.priceMultiplier : 1;
+  const urgencyPrice = Math.round(subtotal * (urgencyMultiplier - 1));
+
+  // 割引前合計
+  const beforeDiscount = subtotal + urgencyPrice;
+
+  // 割引額
+  const discountRate = discount ? discount.discountRate : 0;
+  const discountAmount = Math.round(beforeDiscount * discountRate);
+
+  // 最終金額（1000円単位に切り上げ）
+  const totalPrice = Math.ceil((beforeDiscount - discountAmount) / 1000) * 1000;
+
+  // 内訳配列（表示用）
+  const breakdown = [
+    { label: _simLabel(siteType), price: basePrice, type: "base" },
+  ];
+  if (pagePrice > 0 && pageCount) {
+    breakdown.push({ label: _simLabel(pageCount) + "追加分", price: pagePrice, type: "page" });
+  }
+  options.forEach((o) => {
+    breakdown.push({ label: _simLabel(o), price: o.price, type: "option" });
+  });
+  if (urgencyPrice > 0 && urgency) {
+    breakdown.push({ label: _simLabel(urgency) + "割増", price: urgencyPrice, type: "urgency" });
+  }
+  if (discountAmount > 0 && discount) {
+    breakdown.push({ label: discount.label, price: -discountAmount, type: "discount" });
+  }
+
+  return { basePrice, pagePrice, optionPrice, urgencyPrice, discountAmount, totalPrice, breakdown };
+}
+
+/**
+ * 納期内訳を算出する（純粋関数）
+ * @returns {{ baseDays, pageDays, optionDays, urgencyAdjustment, totalDays, breakdown }}
+ */
+function calculateDaysBreakdown(selections) {
+  const { siteType, pageCount, options, urgency } = selections;
+  if (!siteType) return null;
+
+  // 基本納期 = サイト種別のベース
+  const baseDays = siteType.estimatedDays;
+
+  // ページ数による追加日数
+  const pageDays = pageCount ? (pageCount.dayImpact || 0) : 0;
+
+  // オプションによる追加日数
+  const optionDays = options.reduce((sum, o) => sum + (o.dayImpact || 0), 0);
+
+  // 小計（特急調整前）
+  const subtotalDays = baseDays + pageDays + optionDays;
+
+  // 特急: 倍率適用 + 固定オフセット
+  const dayMultiplier = urgency ? urgency.dayMultiplier : 1;
+  const dayOffset = urgency ? (urgency.dayOffset || 0) : 0;
+  const urgencyAdjustment = Math.ceil(subtotalDays * dayMultiplier) - subtotalDays + dayOffset;
+
+  const totalDays = Math.max(3, subtotalDays + urgencyAdjustment); // 最低3日
+
+  // 内訳配列（表示用）
+  const breakdown = [
+    { label: _simLabel(siteType), days: baseDays, type: "base" },
+  ];
+  if (pageDays > 0 && pageCount) {
+    breakdown.push({ label: _simLabel(pageCount) + "追加分", days: pageDays, type: "page" });
+  }
+  if (optionDays > 0) {
+    options.filter((o) => o.dayImpact > 0).forEach((o) => {
+      breakdown.push({ label: _simLabel(o), days: o.dayImpact, type: "option" });
+    });
+  }
+  if (urgencyAdjustment !== 0 && urgency && urgency.id !== "normal") {
+    breakdown.push({ label: _simLabel(urgency) + "調整", days: urgencyAdjustment, type: "urgency" });
+  }
+
+  return { baseDays, pageDays, optionDays, urgencyAdjustment, totalDays, breakdown };
+}
+
+/**
+ * 統一見積結果オブジェクトを返す
+ */
+function calculateEstimate() {
+  const sel = simulatorState.selections;
+  const price = calculatePriceBreakdown(sel, appliedDiscount);
+  const days = calculateDaysBreakdown(sel);
+  if (!price || !days) return null;
 
   return {
-    total,
-    breakdown: {
-      base: Math.round(siteType.basePrice * (pageCount ? pageCount.multiplier : 1)),
-      optionsTotal,
-      urgencySurcharge: Math.round((baseSubtotal + optionsTotal) * (urgencyMultiplier - 1)),
-      options: options.map((o) => ({ label: o.label, price: o.price })),
-    },
-    estimatedDays,
+    // 価格
+    basePrice:      price.basePrice,
+    pagePrice:      price.pagePrice,
+    optionPrice:    price.optionPrice,
+    urgencyPrice:   price.urgencyPrice,
+    discountAmount: price.discountAmount,
+    totalPrice:     price.totalPrice,
+    priceBreakdown: price.breakdown,
+    // 納期
+    baseDays:           days.baseDays,
+    pageDays:           days.pageDays,
+    optionDays:         days.optionDays,
+    urgencyAdjustment:  days.urgencyAdjustment,
+    totalDays:          days.totalDays,
+    daysBreakdown:      days.breakdown,
   };
 }
+
 
 function getRecommendedPlan() {
   const sel = simulatorState.selections;
@@ -155,12 +258,12 @@ function isCurrentStepSelected() {
 let priceAnimTimer = null;
 
 function updatePricePreview() {
-  const result = calculatePrice();
+  const estimate = calculateEstimate();
   const amountEl = document.getElementById("previewAmount");
   const noteEl   = document.getElementById("previewNote");
 
   if (!amountEl || !noteEl) return;
-  if (!result) {
+  if (!estimate) {
     amountEl.textContent = "---";
     noteEl.textContent   = (typeof t === "function" && t("preview.init")) || "サイト種別を選択してください";
     return;
@@ -171,8 +274,11 @@ function updatePricePreview() {
   clearTimeout(priceAnimTimer);
   priceAnimTimer = setTimeout(() => amountEl.classList.remove("price-flash"), 400);
 
-  amountEl.textContent = "¥" + result.total.toLocaleString("ja-JP");
-  noteEl.textContent   = `推定納期：約${result.estimatedDays}日`;
+  const lang = typeof getCurrentLang === "function" ? getCurrentLang() : "ja";
+  amountEl.textContent = "¥" + estimate.totalPrice.toLocaleString("ja-JP");
+  noteEl.textContent   = lang === "en"
+    ? `Est. delivery: approx. ${estimate.totalDays} days`
+    : `推定納期：約${estimate.totalDays}日`;
 }
 
 // ─── 選択カード生成ヘルパー ────────────────────────────────
@@ -183,14 +289,13 @@ function fireSelectAnimation(cardEl) {
   cardEl.addEventListener("animationend", () => cardEl.classList.remove("select-pop"), { once: true });
 }
 
-// ─── 言語ヘルパー（simulator内） ─────────────────────────
+// ─── 言語ヘルパー（共通ヘルパーへの参照） ─────────────────
+// pricingData.js で定義した _i18nLabel / _i18nDesc を利用
 function _simLabel(item) {
-  const lang = typeof getCurrentLang === "function" ? getCurrentLang() : "ja";
-  return (lang === "en" && item.labelEn) ? item.labelEn : item.label;
+  return typeof _i18nLabel === "function" ? _i18nLabel(item) : item.label;
 }
 function _simDesc(item) {
-  const lang = typeof getCurrentLang === "function" ? getCurrentLang() : "ja";
-  return (lang === "en" && item.descriptionEn) ? item.descriptionEn : item.description;
+  return typeof _i18nDesc === "function" ? _i18nDesc(item) : item.description;
 }
 
 /** Step1: サイト種別 */
@@ -219,8 +324,6 @@ function renderSiteTypeStep() {
       simulatorState.selections.siteType = pricingData.siteTypes.find((s) => s.id === input.value);
       updateCardSelection(container, input);
       fireSelectAnimation(input.closest(".radio-card"));
-      updatePricePreview();
-      updateNavButtons();
       onStateChange();
       if (typeof trackSimulatorSelection === "function")
         trackSimulatorSelection("サイト種別", simulatorState.selections.siteType.label);
@@ -254,8 +357,6 @@ function renderPageCountStep() {
       simulatorState.selections.pageCount = pricingData.pageCountOptions.find((p) => p.id === input.value);
       updateCardSelection(container, input);
       fireSelectAnimation(input.closest(".radio-card"));
-      updatePricePreview();
-      updateNavButtons();
       onStateChange();
       if (typeof trackSimulatorSelection === "function")
         trackSimulatorSelection("ページ数", simulatorState.selections.pageCount.label);
@@ -295,7 +396,6 @@ function renderOptionsStep() {
         );
         card.classList.remove("selected");
       }
-      updatePricePreview();
       onStateChange();
     });
   });
@@ -325,8 +425,6 @@ function renderUrgencyStep() {
       simulatorState.selections.urgency = pricingData.urgencyOptions.find((u) => u.id === input.value);
       updateCardSelection(container, input);
       fireSelectAnimation(input.closest(".radio-card"));
-      updatePricePreview();
-      updateNavButtons();
       onStateChange();
       if (typeof trackSimulatorSelection === "function")
         trackSimulatorSelection("納期", simulatorState.selections.urgency.label);
@@ -352,8 +450,16 @@ function restoreRadioSelection(container, name, selectedId) {
 
 // ─── 状態変更時の処理 ─────────────────────────────────────
 
+/**
+ * 状態変更時の統一フロー
+ * 入力イベント → state更新 → 計算 → 描画 → 保存
+ */
 function onStateChange() {
-  // LocalStorage保存
+  // 1. 計算 & 描画
+  updatePricePreview();
+  updateNavButtons();
+
+  // 2. 永続化
   if (typeof saveStateToStorage === "function") {
     saveStateToStorage(simulatorState.selections);
   }
@@ -404,33 +510,66 @@ function staggerFadeIn(elements, baseDelay, interval) {
 // ─── 結果パネル ────────────────────────────────────────────
 
 function showResultPanel() {
-  const result = calculatePrice();
-  if (!result) return;
+  const estimate = calculateEstimate();
+  if (!estimate) return;
 
-  const { siteType, pageCount, options, urgency } = simulatorState.selections;
   const plan = getRecommendedPlan();
+  const lang = typeof getCurrentLang === "function" ? getCurrentLang() : "ja";
 
-  const breakdownRows = [
-    `<tr><td>${siteType.label}</td><td>¥${siteType.basePrice.toLocaleString("ja-JP")}</td></tr>`,
-    pageCount
-      ? `<tr><td>ページ数（${pageCount.label} × ${pageCount.multiplier}）</td><td>¥${result.breakdown.base.toLocaleString("ja-JP")}</td></tr>`
-      : "",
-    ...options.map(
-      (o) => `<tr><td>${o.label}</td><td>+¥${o.price.toLocaleString("ja-JP")}</td></tr>`
-    ),
-    urgency && urgency.id !== "normal"
-      ? `<tr><td>納期割増（${urgency.label}）</td><td>+¥${result.breakdown.urgencySurcharge.toLocaleString("ja-JP")}</td></tr>`
-      : "",
-  ]
-    .filter(Boolean)
-    .join("");
+  // ── 価格内訳テーブル ────────────────────────────────────
+  const priceRows = estimate.priceBreakdown.map((row) => {
+    const sign = row.price >= 0 ? "+" : "";
+    const cls  = row.type === "discount" ? ' class="breakdown-discount"' : "";
+    // 最初の行（base）は符号なし
+    const displayPrice = row.type === "base"
+      ? `¥${row.price.toLocaleString("ja-JP")}`
+      : `${sign}¥${Math.abs(row.price).toLocaleString("ja-JP")}`;
+    return `<tr${cls}><td>${_esc(row.label)}</td><td>${row.type === "discount" ? "−" : ""}${row.type === "discount" ? `¥${Math.abs(row.price).toLocaleString("ja-JP")}` : displayPrice}</td></tr>`;
+  }).join("");
 
-  // テキスト設定（カウントアップは後で発火）
+  // ── 納期内訳テーブル ────────────────────────────────────
+  const daysRows = estimate.daysBreakdown.map((row) => {
+    const sign = row.days >= 0 ? "+" : "";
+    const displayDays = row.type === "base"
+      ? `${row.days}日`
+      : `${sign}${row.days}日`;
+    return `<tr><td>${_esc(row.label)}</td><td>${displayDays}</td></tr>`;
+  }).join("");
+
+  // ── 概算注記 ────────────────────────────────────────────
+  const disclaimerText = lang === "en"
+    ? "This is an approximate estimate. Final pricing may vary after consultation."
+    : "※ こちらは概算見積です。正式なお見積りはヒアリング後にご提示いたします。";
+  const includesText = lang === "en"
+    ? "Includes: Design, coding, basic testing, delivery support (30 days)"
+    : "含まれるもの：デザイン・コーディング・基本テスト・納品後サポート（30日間）";
+
+  // ── DOM更新 ─────────────────────────────────────────────
   document.getElementById("resultTotal").textContent     = "¥0";
-  document.getElementById("resultDays").textContent      = `約${result.estimatedDays}日`;
-  document.getElementById("resultBreakdown").innerHTML   = breakdownRows;
-  document.getElementById("resultPlanName").textContent  = plan ? plan.name : "";
-  document.getElementById("resultPlanDesc").textContent  = plan ? plan.description : "";
+  document.getElementById("resultDays").textContent      = lang === "en"
+    ? `Approx. ${estimate.totalDays} days`
+    : `約${estimate.totalDays}日`;
+  document.getElementById("resultBreakdown").innerHTML   = priceRows;
+  document.getElementById("resultPlanName").textContent  = plan
+    ? ((lang === "en" && plan.nameEn) ? plan.nameEn : plan.name) : "";
+  document.getElementById("resultPlanDesc").textContent  = plan
+    ? ((lang === "en" && plan.descriptionEn) ? plan.descriptionEn : plan.description) : "";
+
+  // 納期内訳（DOM要素が存在する場合のみ）
+  const daysBreakdownEl = document.getElementById("resultDaysBreakdown");
+  if (daysBreakdownEl) {
+    daysBreakdownEl.innerHTML = daysRows;
+  }
+
+  // 概算注記
+  const disclaimerEl = document.getElementById("resultDisclaimer");
+  if (disclaimerEl) {
+    disclaimerEl.textContent = disclaimerText;
+  }
+  const includesEl = document.getElementById("resultIncludes");
+  if (includesEl) {
+    includesEl.textContent = includesText;
+  }
 
   document.getElementById("simulator").classList.add("hidden");
   const resultSection = document.getElementById("result");
@@ -438,30 +577,34 @@ function showResultPanel() {
   resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
 
   // ── アニメーション演出 ──────────────────────────────────
-  // 結果カードをスタガーで表示
   const resultCards = resultSection.querySelectorAll(".result__body > *");
   staggerFadeIn(Array.from(resultCards), 0.1, 0.15);
 
-  // 合計金額カウントアップ（0.25秒後に開始）
   setTimeout(() => {
-    animateAmount(document.getElementById("resultTotal"), result.total, 1200);
+    animateAmount(document.getElementById("resultTotal"), estimate.totalPrice, 1200);
   }, 250);
 
-  // 内訳テーブルの行をスタガーで表示
   const breakdownTrs = resultSection.querySelectorAll("#resultBreakdown tr");
   staggerFadeIn(Array.from(breakdownTrs), 0.5, 0.08);
+
+  if (daysBreakdownEl) {
+    const daysTrs = daysBreakdownEl.querySelectorAll("tr");
+    staggerFadeIn(Array.from(daysTrs), 0.6, 0.08);
+  }
 
   // 有効期限表示
   const expEl = document.getElementById("resultExpiry");
   if (expEl) {
     const expDate = new Date();
     expDate.setDate(expDate.getDate() + 30);
-    expEl.textContent = `有効期限：${expDate.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })} まで`;
+    expEl.textContent = lang === "en"
+      ? `Valid until: ${expDate.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`
+      : `有効期限：${expDate.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" })} まで`;
   }
 
   // GA4トラッキング
   if (typeof trackResultView === "function") {
-    trackResultView(result.total, result.estimatedDays);
+    trackResultView(estimate.totalPrice, estimate.totalDays);
   }
 }
 
@@ -557,14 +700,15 @@ function applyRestoredIds({ siteTypeId, pageCountId, optionIds = [], urgencyId }
 
 function populateFormHiddenFields() {
   const { siteType, pageCount, options, urgency } = simulatorState.selections;
-  const result = calculatePrice();
+  const estimate = calculateEstimate();
 
   const summary = [
-    siteType  ? `【サイト種別】${siteType.label}`                                                   : "",
-    pageCount ? `【ページ数】${pageCount.label}`                                                    : "",
+    siteType  ? `【サイト種別】${siteType.label}`                                                     : "",
+    pageCount ? `【ページ数】${pageCount.label}`                                                      : "",
     options.length > 0 ? `【オプション】${options.map((o) => o.label).join("、")}` : "【オプション】なし",
-    urgency   ? `【納期】${urgency.label}`                                                          : "",
-    result    ? `【概算見積】¥${result.total.toLocaleString("ja-JP")} / 推定${result.estimatedDays}日` : "",
+    urgency   ? `【納期優先度】${urgency.label}`                                                      : "",
+    estimate  ? `【概算見積】¥${estimate.totalPrice.toLocaleString("ja-JP")} / 推定${estimate.totalDays}日` : "",
+    estimate  ? `【内訳】${estimate.priceBreakdown.map((r) => `${r.label}: ¥${r.price.toLocaleString("ja-JP")}`).join(" / ")}` : "",
   ]
     .filter(Boolean)
     .join("\n");
@@ -624,6 +768,16 @@ function initSimulator() {
   // 「この内容で相談する」
   document.getElementById("btnConsult").addEventListener("click", () => {
     populateFormHiddenFields();
+
+    // 見積プレビューバナーを表示
+    const banner = document.getElementById("quotePreviewBanner");
+    const previewText = document.getElementById("quotePreviewText");
+    const hiddenVal = document.getElementById("hiddenQuoteSummary")?.value;
+    if (banner && previewText && hiddenVal) {
+      previewText.textContent = hiddenVal;
+      banner.classList.remove("hidden");
+    }
+
     document.getElementById("contact").scrollIntoView({ behavior: "smooth", block: "start" });
     if (typeof trackConsultClick === "function") trackConsultClick();
   });
@@ -639,6 +793,15 @@ function initSimulator() {
 
   // 比較機能
   initCompare();
+
+  // キーボードショートカット: ステップ内でEnterを押すと「次へ」
+  document.getElementById("simulator")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.target.matches("button, a, textarea")) {
+      e.preventDefault();
+      const btnNext = document.getElementById("btnNext");
+      if (btnNext && !btnNext.disabled) btnNext.click();
+    }
+  });
 
   // GA4 初期ステップトラッキング
   if (typeof trackSimulatorStep === "function") {
@@ -664,17 +827,17 @@ function initEstimateEmailButton() {
     }
     input.classList.remove("error");
 
-    const result = calculatePrice();
-    if (!result) return;
+    const estimate = calculateEstimate();
+    if (!estimate) return;
 
     const { siteType, pageCount, options, urgency } = simulatorState.selections;
     const summaryText = [
       siteType  ? `サイト種別: ${siteType.label}` : "",
       pageCount ? `ページ数: ${pageCount.label}` : "",
       options.length > 0 ? `オプション: ${options.map((o) => o.label).join("、")}` : "",
-      urgency   ? `納期: ${urgency.label}` : "",
-      `概算合計: ¥${result.total.toLocaleString("ja-JP")}`,
-      `推定納期: 約${result.estimatedDays}日`,
+      urgency   ? `納期優先度: ${urgency.label}` : "",
+      `概算合計: ¥${estimate.totalPrice.toLocaleString("ja-JP")}`,
+      `推定納期: 約${estimate.totalDays}日`,
     ].filter(Boolean).join("\n");
 
     // EmailJS送信（未設定時はスキップ）
@@ -756,25 +919,34 @@ function initCompare() {
 }
 
 function loadCompareSlots() {
-  try {
-    const raw = localStorage.getItem(COMPARE_KEY);
-    if (raw) compareSlots = JSON.parse(raw);
-  } catch (e) {}
+  if (typeof storageLoad === "function") {
+    const loaded = storageLoad("compare_slots");
+    if (Array.isArray(loaded)) compareSlots = loaded;
+  } else {
+    try {
+      const raw = localStorage.getItem(COMPARE_KEY);
+      if (raw) compareSlots = JSON.parse(raw);
+    } catch (e) {}
+  }
   updateCompareButtons();
 }
 
 function saveCompareSlots() {
-  try { localStorage.setItem(COMPARE_KEY, JSON.stringify(compareSlots)); } catch (e) {}
+  if (typeof storageSave === "function") {
+    storageSave("compare_slots", compareSlots, 30);
+  } else {
+    try { localStorage.setItem(COMPARE_KEY, JSON.stringify(compareSlots)); } catch (e) {}
+  }
 }
 
 function saveCompareSlot(index) {
-  const result = calculatePrice();
-  if (!result) return;
+  const estimate = calculateEstimate();
+  if (!estimate) return;
 
   compareSlots[index] = {
     label:      `パターン${index === 0 ? "A" : "B"}`,
     selections: JSON.parse(JSON.stringify(simulatorState.selections)),
-    result,
+    result:     { total: estimate.totalPrice, estimatedDays: estimate.totalDays, breakdown: estimate.priceBreakdown },
     discount:   appliedDiscount,
     savedAt:    Date.now(),
   };
