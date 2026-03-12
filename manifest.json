@@ -1,0 +1,31 @@
+{
+  "name": "Aoki Design Studio 見積シミュレーター",
+  "short_name": "ADS見積",
+  "description": "30秒でWeb制作の概算見積が分かるシミュレーターサービス",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FAFAF7",
+  "theme_color": "#2C2622",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "assets/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/favicon-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["business", "utilities"],
+  "screenshots": []
+}

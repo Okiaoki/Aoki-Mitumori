@@ -1,0 +1,21 @@
+{
+  "_comment": "このファイルは管理画面から編集・ダウンロードできます。変更後はこのファイルを差し替えてください。",
+  "siteTypes": [
+    { "id": "lp",        "label": "LP（ランディングページ）",  "description": "1ページ完結型。商品・サービスの訴求に特化",               "basePrice": 150000, "estimatedDays": 14 },
+    { "id": "corporate", "label": "コーポレートサイト",         "description": "会社・事業の信頼感を高める複数ページ構成",               "basePrice": 350000, "estimatedDays": 30 },
+    { "id": "ec",        "label": "EC風サイト",                "description": "商品一覧・詳細・カート機能を備えた販売サイト",           "basePrice": 500000, "estimatedDays": 45 },
+    { "id": "wordpress", "label": "WordPress構築",             "description": "クライアント自身が更新できるCMS付きサイト",             "basePrice": 300000, "estimatedDays": 25 }
+  ],
+  "options": [
+    { "id": "form",       "label": "お問い合わせフォーム", "description": "入力バリデーション付きの問い合わせフォーム", "price": 30000 },
+    { "id": "cms",        "label": "CMS導入",              "description": "WordPressなどによるコンテンツ管理システム", "price": 80000 },
+    { "id": "responsive", "label": "レスポンシブ対応",     "description": "スマートフォン・タブレット最適化",         "price": 50000 },
+    { "id": "seo",        "label": "SEO基礎設定",          "description": "メタタグ・構造化データ・サイトマップ設定", "price": 40000 },
+    { "id": "sns",        "label": "SNS連携",              "description": "OGP設定・シェアボタン・SNSフィード埋め込み", "price": 25000 }
+  ],
+  "discountCodes": [
+    { "code": "OPEN2024", "label": "オープン記念割引",     "discountRate": 0.10 },
+    { "code": "WEB20",    "label": "Web制作20%割引",       "discountRate": 0.20 },
+    { "code": "REFER10",  "label": "紹介キャンペーン割引", "discountRate": 0.10 }
+  ]
+}
