@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>管理ダッシュボード（デモ） | Aoki Design Studio</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* ─── 管理画面専用スタイル ── */
+    .admin-body { background-color: var(--color-bg); min-height: 100vh; }
+    .admin-login {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: var(--space-6);
+    }
+    .admin-login__box {
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl); padding: var(--space-10) var(--space-8);
+      width: 100%; max-width: 360px; text-align: center; box-shadow: var(--shadow-md);
+    }
+    .admin-login__title { font-family: var(--font-serif); font-size: var(--text-2xl); font-weight: 600; margin-bottom: var(--space-2); }
+    .admin-login__sub   { font-size: var(--text-sm); color: var(--color-text-muted); margin-bottom: var(--space-8); }
+    .admin-login__error { font-size: var(--text-sm); color: var(--color-error); margin-top: var(--space-3); min-height: 1.2em; }
+
+    .admin-header {
+      background-color: var(--color-text); color: #fff;
+      padding: var(--space-4) var(--space-8);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .admin-header__title { font-family: var(--font-serif); font-size: var(--text-lg); font-weight: 600; }
+    .admin-header__meta  { font-size: var(--text-xs); color: rgba(255,255,255,0.6); }
+    .admin-header__actions { display: flex; gap: var(--space-3); align-items: center; }
+
+    .admin-main { max-width: 1100px; margin: 0 auto; padding: var(--space-8); }
+
+    .admin-stats {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+      gap: var(--space-4); margin-bottom: var(--space-8);
+    }
+    .stat-card {
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl); padding: var(--space-5) var(--space-6);
+    }
+    .stat-card__label { font-size: var(--text-xs); color: var(--color-text-muted); margin-bottom: var(--space-2); text-transform: uppercase; letter-spacing: .08em; }
+    .stat-card__value { font-family: var(--font-serif); font-size: var(--text-3xl); font-weight: 600; color: var(--color-accent); line-height: 1.1; }
+    .stat-card__unit  { font-size: var(--text-sm); color: var(--color-text-sub); }
+
+    .admin-section-title {
+      font-size: var(--text-lg); font-weight: 700; margin-bottom: var(--space-4);
+      padding-bottom: var(--space-3); border-bottom: 2px solid var(--color-border);
+    }
+
+    .inquiry-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+    .inquiry-table th { background: var(--color-bg-alt); font-weight: 700; color: var(--color-text-sub); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .06em; padding: var(--space-3) var(--space-4); text-align: left; border-bottom: 2px solid var(--color-border); }
+    .inquiry-table td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border); vertical-align: top; line-height: 1.5; }
+    .inquiry-table tr:hover td { background-color: var(--color-bg); }
+    .inquiry-table .badge {
+      display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px;
+      border-radius: var(--radius-full); background: var(--color-accent-light); color: var(--color-accent);
+    }
+    .inquiry-table .quote-text { font-size: var(--text-xs); color: var(--color-text-muted); white-space: pre-line; max-width: 240px; }
+    .inquiry-table .no-data { text-align: center; padding: var(--space-10); color: var(--color-text-muted); }
+
+    .admin-toolbar {
+      display: flex; gap: var(--space-3); align-items: center;
+      margin-bottom: var(--space-4); flex-wrap: wrap;
+    }
+    .admin-toolbar input[type=search] {
+      flex: 1; min-width: 200px; padding: var(--space-2) var(--space-3);
+      border: 1px solid var(--color-border); border-radius: var(--radius-md);
+      font-size: var(--text-sm); font-family: var(--font-sans);
+      background: var(--color-surface); color: var(--color-text);
+    }
+
+    .discount-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); margin-top: var(--space-4); }
+    .discount-table th, .discount-table td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border); text-align: left; }
+    .discount-table th { font-weight: 700; color: var(--color-text-sub); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .06em; background: var(--color-bg-alt); }
+    .code-badge { font-family: monospace; background: var(--color-bg-alt); padding: 2px 8px; border-radius: var(--radius-sm); font-size: var(--text-sm); letter-spacing: .06em; }
+
+    /* ─── タブ ── */
+    .admin-tabs {
+      display: flex; gap: 0; border-bottom: 2px solid var(--color-border);
+      margin-bottom: var(--space-8);
+    }
+    .admin-tab {
+      padding: var(--space-3) var(--space-6); font-size: var(--text-sm); font-weight: 500;
+      background: none; border: none; border-bottom: 2px solid transparent;
+      margin-bottom: -2px; cursor: pointer; color: var(--color-text-muted);
+      font-family: var(--font-sans); transition: color .2s, border-color .2s;
+    }
+    .admin-tab:hover { color: var(--color-text); }
+    .admin-tab--active { color: var(--color-accent); border-bottom-color: var(--color-accent); font-weight: 700; }
+
+    .tab-panel { display: none; }
+    .tab-panel--active { display: block; }
+
+    /* ─── 料金設定エディター ── */
+    .pricing-editor-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); margin-bottom: var(--space-6); }
+    .pricing-editor-table th { background: var(--color-bg-alt); font-weight: 700; color: var(--color-text-sub); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .06em; padding: var(--space-3) var(--space-4); text-align: left; border-bottom: 2px solid var(--color-border); }
+    .pricing-editor-table td { padding: var(--space-2) var(--space-4); border-bottom: 1px solid var(--color-border); vertical-align: middle; }
+    .pricing-editor-table input[type="number"],
+    .pricing-editor-table input[type="text"] {
+      width: 100%; padding: var(--space-2) var(--space-3);
+      border: 1px solid var(--color-border); border-radius: var(--radius-md);
+      font-size: var(--text-sm); font-family: var(--font-sans);
+      background: var(--color-surface); color: var(--color-text);
+    }
+    .pricing-editor-table input:focus { outline: 2px solid var(--color-accent); outline-offset: 0; border-color: transparent; }
+    .pricing-editor-table .label-cell { font-weight: 500; color: var(--color-text-sub); min-width: 180px; }
+
+    .pricing-actions { display: flex; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-6); }
+    .admin-notice { font-size: var(--text-sm); padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); margin-bottom: var(--space-4); }
+    .admin-notice--info { background: var(--color-accent-light); color: var(--color-accent); }
+    .admin-notice--success { background: #d1fae5; color: #065f46; }
+
+    /* 割引コード追加フォーム */
+    .discount-add-form {
+      display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: var(--space-3);
+      align-items: end; margin-top: var(--space-6); padding: var(--space-4);
+      background: var(--color-bg-alt); border-radius: var(--radius-md);
+    }
+    .discount-add-form label { font-size: var(--text-xs); color: var(--color-text-muted); display: block; margin-bottom: var(--space-1); }
+    .discount-add-form input {
+      width: 100%; padding: var(--space-2) var(--space-3);
+      border: 1px solid var(--color-border); border-radius: var(--radius-md);
+      font-size: var(--text-sm); font-family: var(--font-sans);
+      background: var(--color-surface); color: var(--color-text);
+    }
+
+    /* ─── A/Bテストパネル ── */
+    .abtest-table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); margin-bottom: var(--space-6); }
+    .abtest-table th { background: var(--color-bg-alt); font-weight: 700; color: var(--color-text-sub); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .06em; padding: var(--space-3) var(--space-4); text-align: left; border-bottom: 2px solid var(--color-border); }
+    .abtest-table td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border); vertical-align: middle; }
+    .variant-badge {
+      display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 10px;
+      border-radius: var(--radius-full);
+    }
+    .variant-badge--control    { background: #e0e7ff; color: #3730a3; }
+    .variant-badge--challenger { background: var(--color-accent-light); color: var(--color-accent); }
+    .abtest-note { font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--space-4); line-height: 1.7; }
+
+    /* ─── デモ免責バナー ── */
+    .demo-banner {
+      background: #fef3c7; color: #92400e; font-size: var(--text-xs);
+      text-align: center; padding: var(--space-2) var(--space-4);
+      line-height: 1.6; border-bottom: 1px solid #fbbf24;
+    }
+    .demo-banner strong { font-weight: 700; }
+  </style>
+</head>
+<body class="admin-body">
+
+  <!-- ─── ログイン画面 ──────────────────────────────────── -->
+  <div id="loginScreen" class="admin-login">
+    <div class="admin-login__box">
+      <h1 class="admin-login__title">Admin</h1>
+      <p class="admin-login__sub">Aoki Design Studio 管理ダッシュボード（デモ）</p>
+      <p style="font-size:var(--text-xs);color:var(--color-text-muted);margin-bottom:var(--space-4);line-height:1.6">このダッシュボードはクライアントサイド（localStorage）のみで動作するデモです。<br>本番運用にはサーバーサイド管理画面の構築が必要です。</p>
+      <div class="form-group">
+        <label class="form-label" for="adminPassword">パスワード</label>
+        <input type="password" id="adminPassword" class="form-input" placeholder="管理者パスワードを入力" autocomplete="current-password" />
+      </div>
+      <button id="btnLogin" class="btn btn--primary btn--block" style="margin-top:var(--space-4)">ログイン</button>
+      <p class="admin-login__error" id="loginError"></p>
+      <p class="admin-login__error" id="adminConfigNotice"></p>
+    </div>
+  </div>
+
+  <!-- ─── 管理ダッシュボード ─────────────────────────────── -->
+  <div id="dashboard" class="hidden">
+
+    <div class="demo-banner"><strong>DEMO</strong> — この管理画面は localStorage 上のデモです。データはブラウザ内にのみ保存され、CSV エクスポートもローカル保存データのスナップショットです。サーバー送信や本番用の権限管理は含みません。</div>
+    <header class="admin-header" role="banner">
+      <div>
+        <p class="admin-header__title">Aoki Design Studio — 管理ダッシュボード（デモ）</p>
+        <p class="admin-header__meta" id="adminMeta"></p>
+      </div>
+      <div class="admin-header__actions">
+        <button id="btnExportCSV" class="btn btn--outline btn--sm" style="border-color:rgba(255,255,255,.4);color:rgba(255,255,255,.8)">CSVエクスポート（local）</button>
+        <button id="btnLogout" class="btn btn--outline btn--sm" style="border-color:rgba(255,255,255,.4);color:rgba(255,255,255,.8)">ログアウト</button>
+      </div>
+    </header>
+
+    <main class="admin-main" id="main-content">
+
+      <!-- 統計カード -->
+      <div class="admin-stats">
+        <div class="stat-card">
+          <p class="stat-card__label">総問い合わせ数</p>
+          <p class="stat-card__value" id="statTotal">0</p>
+          <p class="stat-card__unit">件</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-card__label">今月の問い合わせ</p>
+          <p class="stat-card__value" id="statMonth">0</p>
+          <p class="stat-card__unit">件</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-card__label">平均概算金額</p>
+          <p class="stat-card__value" id="statAvgPrice">—</p>
+          <p class="stat-card__unit">円</p>
+        </div>
+        <div class="stat-card">
+          <p class="stat-card__label">最多サイト種別</p>
+          <p class="stat-card__value" id="statTopType" style="font-size:var(--text-xl)">—</p>
+          <p class="stat-card__unit"></p>
+        </div>
+      </div>
+
+      <!-- タブナビゲーション -->
+      <nav class="admin-tabs" role="tablist">
+        <button class="admin-tab admin-tab--active" role="tab" data-tab="inquiries">問い合わせ一覧</button>
+        <button class="admin-tab" role="tab" data-tab="discounts">割引コード</button>
+        <button class="admin-tab" role="tab" data-tab="pricing">料金設定</button>
+        <button class="admin-tab" role="tab" data-tab="abtest">A/Bテスト</button>
+      </nav>
+
+      <!-- ─── タブ: 問い合わせ一覧 ─── -->
+      <div id="tab-inquiries" class="tab-panel tab-panel--active">
+        <section>
+          <h2 class="admin-section-title">問い合わせ一覧</h2>
+          <div class="admin-toolbar">
+            <input type="search" id="searchInput" placeholder="名前・メール・内容で検索..." />
+            <button id="btnClearAll" class="btn btn--outline btn--sm">全件削除</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="inquiry-table" id="inquiryTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>受付日時</th>
+                  <th>お名前</th>
+                  <th>メール</th>
+                  <th>電話</th>
+                  <th>見積内容</th>
+                  <th>相談内容</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="inquiryBody">
+                <tr><td colspan="8" class="no-data">問い合わせデータがありません</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- ─── タブ: 割引コード ─── -->
+      <div id="tab-discounts" class="tab-panel">
+        <section>
+          <h2 class="admin-section-title">割引コード管理</h2>
+          <p class="admin-notice admin-notice--info">
+            ここでコードを追加・削除すると料金設定タブの割引コードに反映されます。「保存して適用」ボタンで確定してください。
+          </p>
+          <table class="discount-table">
+            <thead>
+              <tr><th>コード</th><th>説明</th><th>割引率</th><th>利用回数</th><th>操作</th></tr>
+            </thead>
+            <tbody id="discountBody"></tbody>
+          </table>
+
+          <!-- 割引コード追加フォーム -->
+          <div class="discount-add-form">
+            <div>
+              <label for="newDiscountCode">コード</label>
+              <input type="text" id="newDiscountCode" placeholder="SUMMER10" style="text-transform:uppercase" />
+            </div>
+            <div>
+              <label for="newDiscountLabel">説明</label>
+              <input type="text" id="newDiscountLabel" placeholder="夏季キャンペーン" />
+            </div>
+            <div>
+              <label for="newDiscountRate">割引率（%）</label>
+              <input type="number" id="newDiscountRate" placeholder="10" min="1" max="99" />
+            </div>
+            <button id="btnAddDiscount" class="btn btn--outline btn--sm" style="white-space:nowrap">追加</button>
+          </div>
+        </section>
+      </div>
+
+      <!-- ─── タブ: 料金設定 ─── -->
+      <div id="tab-pricing" class="tab-panel">
+        <section>
+          <h2 class="admin-section-title">料金設定エディター</h2>
+          <p class="admin-notice admin-notice--info">
+            この画面で保存する内容はブラウザ内のローカル上書きです。実行時の正本は <code>js/pricingData.js</code> にあり、<code>data/pricing.json</code> は参照・共有用のスナップショットとして扱います。
+          </p>
+          <div id="pricingModelSummary" class="admin-notice admin-notice--info" style="margin-top:var(--space-4)"></div>
+
+          <h3 style="font-size:var(--text-base);font-weight:700;margin-bottom:var(--space-3)">サイト種別 — 基本料金</h3>
+          <div style="overflow-x:auto">
+            <table class="pricing-editor-table" id="siteTypesEditor">
+              <thead>
+                <tr>
+                  <th>サイト種別</th>
+                  <th>基本料金（円）</th>
+                  <th>納期目安（日）</th>
+                </tr>
+              </thead>
+              <tbody id="siteTypesBody"></tbody>
+            </table>
+          </div>
+
+          <h3 style="font-size:var(--text-base);font-weight:700;margin:var(--space-6) 0 var(--space-3)">オプション料金</h3>
+          <div style="overflow-x:auto">
+            <table class="pricing-editor-table" id="optionsEditor">
+              <thead>
+                <tr>
+                  <th>オプション名</th>
+                  <th>価格（円）</th>
+                </tr>
+              </thead>
+              <tbody id="optionsBody"></tbody>
+            </table>
+          </div>
+
+          <h3 style="font-size:var(--text-base);font-weight:700;margin:var(--space-6) 0 var(--space-3)">計算固定項目（参照）</h3>
+          <p class="admin-notice admin-notice--info" style="margin-bottom:var(--space-4)">
+            下記は見積計算に使う固定値です。この画面では編集せず、必要な変更は <code>js/pricingData.js</code> を更新してください。
+          </p>
+
+          <h4 style="font-size:var(--text-sm);font-weight:700;margin:0 0 var(--space-2)">ページ数設定</h4>
+          <div style="overflow-x:auto">
+            <table class="pricing-editor-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>ラベル</th>
+                  <th>倍率</th>
+                  <th>日数増分</th>
+                </tr>
+              </thead>
+              <tbody id="pageCountReferenceBody"></tbody>
+            </table>
+          </div>
+
+          <h4 style="font-size:var(--text-sm);font-weight:700;margin:var(--space-5) 0 var(--space-2)">オプション工数設定</h4>
+          <div style="overflow-x:auto">
+            <table class="pricing-editor-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>ラベル</th>
+                  <th>現在価格</th>
+                  <th>日数増分</th>
+                </tr>
+              </thead>
+              <tbody id="optionImpactReferenceBody"></tbody>
+            </table>
+          </div>
+
+          <h4 style="font-size:var(--text-sm);font-weight:700;margin:var(--space-5) 0 var(--space-2)">特急設定</h4>
+          <div style="overflow-x:auto">
+            <table class="pricing-editor-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>ラベル</th>
+                  <th>価格倍率</th>
+                  <th>日数倍率</th>
+                  <th>日数補正</th>
+                </tr>
+              </thead>
+              <tbody id="urgencyReferenceBody"></tbody>
+            </table>
+          </div>
+
+          <div class="pricing-actions">
+            <button id="btnSavePricing" class="btn btn--primary">保存して適用</button>
+            <button id="btnDownloadJson" class="btn btn--outline">JSON参照出力</button>
+            <button id="btnResetPricing" class="btn btn--outline" style="margin-left:auto;color:var(--color-error);border-color:var(--color-error)">デフォルトに戻す</button>
+          </div>
+          <p id="pricingSaveNotice" class="admin-notice admin-notice--success" style="display:none;margin-top:var(--space-4)">ローカル上書きを保存しました。</p>
+        </section>
+      </div>
+
+      <!-- ─── タブ: A/Bテスト ─── -->
+      <div id="tab-abtest" class="tab-panel">
+        <section>
+          <h2 class="admin-section-title">A/Bテスト状況</h2>
+          <p class="admin-notice admin-notice--info">
+            この画面は「このブラウザに現在割り当てられているバリアント」を確認するためのものです。GA4 が未設定の場合はイベント計測されず、ここでもブラウザ内の割り当て確認のみになります。
+          </p>
+          <table class="abtest-table" id="abtestTable">
+            <thead>
+              <tr>
+                <th>テストID</th>
+                <th>テスト内容</th>
+                <th>このブラウザのバリアント</th>
+                <th>バリアント説明</th>
+              </tr>
+            </thead>
+            <tbody id="abtestBody">
+              <tr><td colspan="4" style="text-align:center;padding:var(--space-8);color:var(--color-text-muted)">データなし</td></tr>
+            </tbody>
+          </table>
+
+          <div style="margin-top:var(--space-4);display:flex;gap:var(--space-3);flex-wrap:wrap">
+            <button id="btnRefreshAB" class="btn btn--outline btn--sm">表示を更新</button>
+            <button id="btnResetAB" class="btn btn--outline btn--sm" style="color:var(--color-error);border-color:var(--color-error)">割り当てリセット（再抽選）</button>
+          </div>
+
+          <p class="abtest-note">
+            ※ 割り当てリセットを行うと、このブラウザのバリアントが再抽選されます。<br>
+            ※ GA4でのCVR比較は「探索」レポートで <code>ab_test_view</code> / <code>ab_test_conversion</code> イベントをセグメント分析してください。<br>
+            ※ GA4 未設定時は計測イベント自体が送信されません。<br>
+            ※ テスト定義（バリアント内容・比率）の変更は <code>js/abtest.js</code> を編集してください。
+          </p>
+        </section>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/pricingData.js"></script>
+  <script>
+  // ─── 設定 ──────────────────────────────────────────────────
+  // パスワードハッシュ（SHA-256）で保護。デフォルト: "admin2024"
+  // 変更手順: ブラウザのコンソールで以下を実行し、ハッシュ値をここに貼り付けてください
+  //   crypto.subtle.digest('SHA-256', new TextEncoder().encode('新しいパスワード'))
+  //     .then(h => console.log(Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('')))
+  const ADMIN_PASSWORD_HASH = "YOUR_ADMIN_PASSWORD_HASH_HERE";
+  const ADMIN_PASSWORD_PLACEHOLDER = "YOUR_ADMIN_PASSWORD_HASH_HERE";
+
+  // 編集中の割引コード一覧（割引コードタブ用ローカル状態）
+  let editingDiscounts = [];
+
+  // ─── SHA-256 ハッシュ計算 ───────────────────────────────────
+  async function sha256(text) {
+    const data = new TextEncoder().encode(text);
+    const hash = await crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  function isAdminPasswordConfigured() {
+    return (
+      typeof ADMIN_PASSWORD_HASH === "string" &&
+      ADMIN_PASSWORD_HASH !== ADMIN_PASSWORD_PLACEHOLDER &&
+      !ADMIN_PASSWORD_HASH.includes("YOUR_")
+    );
+  }
+
+  function initAdminAuthState() {
+    if (isAdminPasswordConfigured()) return;
+
+    const input = document.getElementById("adminPassword");
+    const loginButton = document.getElementById("btnLogin");
+    const error = document.getElementById("loginError");
+    const notice = document.getElementById("adminConfigNotice");
+
+    if (input) {
+      input.disabled = true;
+      input.placeholder = "設定待ち";
+    }
+    if (loginButton) loginButton.disabled = true;
+    if (error) error.textContent = "管理画面は未設定です。ADMIN_PASSWORD_HASH を設定してください。";
+    if (notice) notice.textContent = "公開前に admin.html の ADMIN_PASSWORD_HASH を実運用値へ置き換えてください。";
+  }
+
+  // ─── ログイン ───────────────────────────────────────────────
+  document.getElementById("btnLogin").addEventListener("click", handleLogin);
+  document.getElementById("adminPassword").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") handleLogin();
+  });
+  initAdminAuthState();
+
+  async function handleLogin() {
+    const pw = document.getElementById("adminPassword").value;
+    const pwHash = await sha256(pw);
+    if (!isAdminPasswordConfigured()) {
+      document.getElementById("loginError").textContent = "管理画面は未設定です。ADMIN_PASSWORD_HASH を設定してください。";
+      return;
+    }
+
+    // 未設定チェック: ハッシュがプレースホルダーのままなら警告を表示して通す（開発用）
+    if (ADMIN_PASSWORD_HASH.includes("YOUR_")) {
+      console.warn("[admin] パスワードハッシュが未設定です。emailjs-config.js の手順に従い設定してください。");
+      document.getElementById("loginScreen").classList.add("hidden");
+      document.getElementById("dashboard").classList.remove("hidden");
+      initDashboard();
+      return;
+    }
+
+    if (pwHash === ADMIN_PASSWORD_HASH) {
+      document.getElementById("loginScreen").classList.add("hidden");
+      document.getElementById("dashboard").classList.remove("hidden");
+      initDashboard();
+    } else {
+      document.getElementById("loginError").textContent = "パスワードが正しくありません";
+      document.getElementById("adminPassword").focus();
+    }
+  }
+
+  // ─── タブ切り替え ──────────────────────────────────────────
+  document.querySelectorAll(".admin-tab").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".admin-tab").forEach((b) => b.classList.remove("admin-tab--active"));
+      document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("tab-panel--active"));
+      btn.classList.add("admin-tab--active");
+      document.getElementById("tab-" + btn.dataset.tab).classList.add("tab-panel--active");
+    });
+  });
+
+  // ─── ダッシュボード初期化 ──────────────────────────────────
+  function initDashboard() {
+    document.getElementById("adminMeta").textContent =
+      `最終更新: ${new Date().toLocaleString("ja-JP")}`;
+
+    renderStats();
+    renderInquiries();
+    renderDiscountTab();
+    renderPricingEditor();
+    renderABTestPanel();
+
+    document.getElementById("btnLogout").addEventListener("click", () => {
+      document.getElementById("dashboard").classList.add("hidden");
+      document.getElementById("loginScreen").classList.remove("hidden");
+      document.getElementById("adminPassword").value = "";
+    });
+
+    document.getElementById("searchInput").addEventListener("input", (e) => {
+      renderInquiries(e.target.value);
+    });
+
+    document.getElementById("btnClearAll").addEventListener("click", () => {
+      if (!confirm("全件削除しますか？この操作は取り消せません。")) return;
+      if (typeof storageClearAdminInquiries === "function") storageClearAdminInquiries();
+      renderStats();
+      renderInquiries();
+    });
+
+    document.getElementById("btnExportCSV").addEventListener("click", exportCSV);
+
+    // 料金設定ボタン
+    document.getElementById("btnSavePricing").addEventListener("click", savePricing);
+    document.getElementById("btnDownloadJson").addEventListener("click", downloadPricingJson);
+    document.getElementById("btnResetPricing").addEventListener("click", () => {
+      if (!confirm("料金設定をデフォルトに戻しますか？")) return;
+      if (typeof storageClearAdminPricingOverride === "function") storageClearAdminPricingOverride();
+      renderPricingEditor();
+      showPricingNotice("デフォルトに戻しました。");
+    });
+
+    // 割引コードボタン
+    document.getElementById("btnAddDiscount").addEventListener("click", addDiscountRow);
+
+    // A/Bテストボタン
+    document.getElementById("btnRefreshAB").addEventListener("click", renderABTestPanel);
+    document.getElementById("btnResetAB").addEventListener("click", () => {
+      if (!confirm("A/Bテストの割り当てをリセットしますか？次回表示時に再抽選されます。")) return;
+      if (typeof storageClearABVariants === "function") storageClearABVariants();
+      renderABTestPanel();
+    });
+  }
+
+  // ─── 問い合わせデータ ──────────────────────────────────────
+  function getInquiries() {
+    try {
+      return typeof storageGetAdminInquiries === "function" ? storageGetAdminInquiries() : [];
+    } catch { return []; }
+  }
+
+  function renderStats() {
+    const all   = getInquiries();
+    const now   = new Date();
+    const month = all.filter((d) => {
+      const date = new Date(d.timestamp);
+      return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+    });
+
+    const prices = all
+      .map((d) => {
+        const m = (d.quote || "").match(/¥([\d,]+)/);
+        return m ? parseInt(m[1].replace(/,/g, ""), 10) : 0;
+      })
+      .filter(Boolean);
+    const avgPrice = prices.length
+      ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length)
+      : null;
+
+    const typeCounts = {};
+    all.forEach((d) => {
+      const m = (d.quote || "").match(/【サイト種別】(.+)/);
+      if (m) typeCounts[m[1]] = (typeCounts[m[1]] || 0) + 1;
+    });
+    const topType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0];
+
+    document.getElementById("statTotal").textContent = all.length;
+    document.getElementById("statMonth").textContent = month.length;
+    document.getElementById("statAvgPrice").textContent = avgPrice
+      ? avgPrice.toLocaleString("ja-JP")
+      : "—";
+    document.getElementById("statTopType").textContent = topType
+      ? topType[0].replace("（", "\n（")
+      : "—";
+  }
+
+  function renderInquiries(query = "") {
+    const all = getInquiries();
+    const filtered = query
+      ? all.filter((d) =>
+          [d.name, d.email, d.message, d.quote].some((v) =>
+            (v || "").toLowerCase().includes(query.toLowerCase())
+          )
+        )
+      : all;
+
+    const tbody = document.getElementById("inquiryBody");
+    if (!filtered.length) {
+      tbody.innerHTML = `<tr><td colspan="8" class="no-data">${query ? "検索結果なし" : "問い合わせデータがありません"}</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered
+      .slice()
+      .reverse()
+      .map((d, i) => `
+        <tr>
+          <td>${filtered.length - i}</td>
+          <td style="white-space:nowrap">${new Date(d.timestamp).toLocaleString("ja-JP")}</td>
+          <td><strong>${esc(d.name)}</strong></td>
+          <td><a href="mailto:${esc(d.email)}" style="color:var(--color-accent)">${esc(d.email)}</a></td>
+          <td>${d.phone ? esc(d.phone) : '<span style="color:var(--color-text-muted)">—</span>'}</td>
+          <td><div class="quote-text">${esc(d.quote || "—")}</div></td>
+          <td style="max-width:200px">${esc(d.message || "—")}</td>
+          <td>
+            <button class="btn btn--sm btn--outline" onclick="deleteInquiry('${d.id}')">削除</button>
+          </td>
+        </tr>`)
+      .join("");
+  }
+
+  function deleteInquiry(id) {
+    if (!confirm("この問い合わせを削除しますか？")) return;
+    const all = getInquiries().filter((d) => d.id !== id);
+    if (typeof storageSetAdminInquiries === "function") storageSetAdminInquiries(all);
+    renderStats();
+    renderInquiries(document.getElementById("searchInput").value);
+  }
+
+  // ─── 割引コードタブ ────────────────────────────────────────
+  function renderDiscountTab() {
+    // 現在の割引コードを編集用配列にコピー
+    const override = getPricingOverride();
+    editingDiscounts = (override && override.discountCodes)
+      ? override.discountCodes.map((c) => ({ ...c }))
+      : (pricingData.discountCodes || []).map((c) => ({ ...c }));
+
+    renderDiscountTable();
+  }
+
+  function renderDiscountTable() {
+    const usage  = typeof storageGetAdminDiscountUsage === "function" ? storageGetAdminDiscountUsage() : {};
+    const tbody  = document.getElementById("discountBody");
+    if (!editingDiscounts.length) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:var(--space-6);color:var(--color-text-muted)">割引コードがありません</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = editingDiscounts
+      .map((c, idx) => `
+        <tr>
+          <td><span class="code-badge">${esc(c.code)}</span></td>
+          <td>${esc(c.label)}</td>
+          <td>${Math.round(c.discountRate * 100)}% OFF</td>
+          <td>${usage[c.code] || 0}回</td>
+          <td>
+            <button class="btn btn--sm btn--outline" style="color:var(--color-error);border-color:var(--color-error)"
+              onclick="removeDiscountRow(${idx})">削除</button>
+          </td>
+        </tr>`)
+      .join("");
+  }
+
+  function addDiscountRow() {
+    const code  = document.getElementById("newDiscountCode").value.trim().toUpperCase();
+    const label = document.getElementById("newDiscountLabel").value.trim();
+    const rate  = parseFloat(document.getElementById("newDiscountRate").value);
+
+    if (!code || !label || isNaN(rate) || rate <= 0 || rate >= 100) {
+      alert("コード・説明・割引率（1〜99%）をすべて入力してください。");
+      return;
+    }
+    if (editingDiscounts.some((c) => c.code === code)) {
+      alert("同じコードが既に存在します。");
+      return;
+    }
+
+    editingDiscounts.push({ code, label, discountRate: rate / 100 });
+    document.getElementById("newDiscountCode").value  = "";
+    document.getElementById("newDiscountLabel").value = "";
+    document.getElementById("newDiscountRate").value  = "";
+    renderDiscountTable();
+    // 自動保存（discountCodesのみ即時反映）
+    saveDiscountsToOverride();
+  }
+
+  function removeDiscountRow(idx) {
+    if (!confirm(`「${editingDiscounts[idx].code}」を削除しますか？`)) return;
+    editingDiscounts.splice(idx, 1);
+    renderDiscountTable();
+    saveDiscountsToOverride();
+  }
+
+  function saveDiscountsToOverride() {
+    const override = getPricingOverride() || {};
+    override.discountCodes = editingDiscounts;
+    const data = typeof sanitizePricingOverride === "function"
+      ? sanitizePricingOverride(override)
+      : override;
+    if (data) {
+      if (typeof storageSetAdminPricingOverride === "function") storageSetAdminPricingOverride(data);
+    } else if (typeof storageClearAdminPricingOverride === "function") {
+      storageClearAdminPricingOverride();
+    }
+    // 料金設定タブの表示も同期
+    syncPricingEditorDiscounts();
+    renderPricingReferenceTables(data);
+  }
+
+  function syncPricingEditorDiscounts() {
+    // 料金設定タブの割引コード行を再描画（将来の拡張余地）
+  }
+
+  // ─── 料金設定エディター ────────────────────────────────────
+  function renderPricingModelSummary() {
+    const meta = typeof getPricingModelMeta === "function" ? getPricingModelMeta() : null;
+    const summaryEl = document.getElementById("pricingModelSummary");
+    if (!summaryEl || !meta) return;
+
+    summaryEl.innerHTML = `
+      <strong>v2.1 の pricing 境界</strong><br>
+      正本: <code>${esc(meta.runtimeCanonicalSource)}</code><br>
+      ローカル上書き: <code>${esc(meta.runtimeOverrideStorageKey)}</code><br>
+      参照スナップショット: <code>${esc(meta.referenceSnapshotFile)}</code><br>
+      管理画面で編集可能: <code>siteTypes.basePrice</code> / <code>siteTypes.estimatedDays</code> / <code>options.price</code> / <code>discountCodes.*</code><br>
+      コード固定: <code>pageCountOptions.multiplier</code> / <code>pageCountOptions.dayImpact</code> / <code>options.dayImpact</code> / <code>urgencyOptions.priceMultiplier</code> / <code>urgencyOptions.dayMultiplier</code> / <code>urgencyOptions.dayOffset</code>
+    `;
+  }
+
+  function renderPricingReferenceTables(override) {
+    const snapshot = typeof buildPricingReferenceSnapshot === "function"
+      ? buildPricingReferenceSnapshot(override)
+      : null;
+    if (!snapshot) return;
+
+    const pageCountBody = document.getElementById("pageCountReferenceBody");
+    if (pageCountBody) {
+      pageCountBody.innerHTML = snapshot.pageCountOptions.map((item) => `
+        <tr>
+          <td><code>${esc(item.id)}</code></td>
+          <td>${esc(item.label)}</td>
+          <td>${item.multiplier}</td>
+          <td>${item.dayImpact}</td>
+        </tr>`).join("");
+    }
+
+    const optionImpactBody = document.getElementById("optionImpactReferenceBody");
+    if (optionImpactBody) {
+      optionImpactBody.innerHTML = snapshot.options.map((item) => `
+        <tr>
+          <td><code>${esc(item.id)}</code></td>
+          <td>${esc(item.label)}</td>
+          <td>¥${Number(item.price).toLocaleString("ja-JP")}</td>
+          <td>${item.dayImpact}</td>
+        </tr>`).join("");
+    }
+
+    const urgencyBody = document.getElementById("urgencyReferenceBody");
+    if (urgencyBody) {
+      urgencyBody.innerHTML = snapshot.urgencyOptions.map((item) => `
+        <tr>
+          <td><code>${esc(item.id)}</code></td>
+          <td>${esc(item.label)}</td>
+          <td>${item.priceMultiplier}</td>
+          <td>${item.dayMultiplier}</td>
+          <td>${item.dayOffset}</td>
+        </tr>`).join("");
+    }
+  }
+
+  function renderPricingEditor() {
+    const override = getPricingOverride();
+
+    const siteBody = document.getElementById("siteTypesBody");
+    siteBody.innerHTML = pricingData.siteTypes.map((s) => {
+      const ov = override && override.siteTypes
+        ? (override.siteTypes.find((o) => o.id === s.id) || {})
+        : {};
+      const price = ov.basePrice !== undefined ? ov.basePrice : s.basePrice;
+      const days  = ov.estimatedDays !== undefined ? ov.estimatedDays : s.estimatedDays;
+      return `
+        <tr>
+          <td class="label-cell">${esc(s.label)}</td>
+          <td>
+            <input type="number" min="0" step="10000" value="${price}"
+              data-id="${esc(s.id)}" data-field="basePrice" class="sitetype-input" />
+          </td>
+          <td>
+            <input type="number" min="1" step="1" value="${days}"
+              data-id="${esc(s.id)}" data-field="estimatedDays" class="sitetype-input" />
+          </td>
+        </tr>`;
+    }).join("");
+
+    const optBody = document.getElementById("optionsBody");
+    optBody.innerHTML = pricingData.options.map((o) => {
+      const ov = override && override.options
+        ? (override.options.find((x) => x.id === o.id) || {})
+        : {};
+      const price = ov.price !== undefined ? ov.price : o.price;
+      return `
+        <tr>
+          <td class="label-cell">${esc(o.label)}</td>
+          <td>
+            <input type="number" min="0" step="1000" value="${price}"
+              data-id="${esc(o.id)}" data-field="price" class="option-input" />
+          </td>
+        </tr>`;
+    }).join("");
+
+    renderPricingModelSummary();
+    renderPricingReferenceTables(override);
+  }
+
+  function savePricing() {
+    const siteTypes = [];
+    document.querySelectorAll(".sitetype-input").forEach((input) => {
+      const id    = input.dataset.id;
+      const field = input.dataset.field;
+      let entry   = siteTypes.find((s) => s.id === id);
+      if (!entry) { entry = { id }; siteTypes.push(entry); }
+      entry[field] = Number(input.value);
+    });
+
+    const options = [];
+    document.querySelectorAll(".option-input").forEach((input) => {
+      options.push({ id: input.dataset.id, price: Number(input.value) });
+    });
+
+    const override = getPricingOverride() || {};
+    const discountCodes = override.discountCodes || editingDiscounts;
+    const data = typeof sanitizePricingOverride === "function"
+      ? sanitizePricingOverride({ siteTypes, options, discountCodes })
+      : { siteTypes, options, discountCodes };
+
+    if (data) {
+      if (typeof storageSetAdminPricingOverride === "function") storageSetAdminPricingOverride(data);
+    } else if (typeof storageClearAdminPricingOverride === "function") {
+      storageClearAdminPricingOverride();
+    }
+    renderPricingReferenceTables(data);
+    showPricingNotice("ローカル上書きを保存しました。見積シミュレーターでは js/pricingData.js にこの上書きが重なって反映されます。");
+  }
+
+  function downloadPricingJson() {
+    const snapshot = typeof buildPricingReferenceSnapshot === "function"
+      ? buildPricingReferenceSnapshot(getPricingOverride())
+      : null;
+    if (!snapshot) return;
+
+    const json = JSON.stringify(snapshot, null, 2);
+    const blob = new Blob([json], { type: "application/json;charset=utf-8;" });
+    const a = Object.assign(document.createElement("a"), {
+      href:     URL.createObjectURL(blob),
+      download: "pricing-reference.json",
+    });
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function getPricingOverride() {
+    try {
+      const raw = typeof storageGetAdminPricingOverride === "function" ? storageGetAdminPricingOverride() : null;
+      return typeof sanitizePricingOverride === "function" ? sanitizePricingOverride(raw) : raw;
+    } catch { return null; }
+  }
+
+  function showPricingNotice(msg) {
+    const el = document.getElementById("pricingSaveNotice");
+    el.textContent = msg;
+    el.style.display = "block";
+    clearTimeout(el._timer);
+    el._timer = setTimeout(() => { el.style.display = "none"; }, 4000);
+  }
+
+  // ─── A/Bテストパネル ───────────────────────────────────────
+  const AB_TEST_LABELS = {
+    hero_copy: "ヒーローキャッチコピー",
+    hero_cta:  "CTAボタンコピー",
+  };
+
+  function renderABTestPanel() {
+    let stored = {};
+    try {
+      stored = typeof storageGetABVariants === "function" ? storageGetABVariants() : {};
+    } catch {}
+
+    const tests = [
+      {
+        id: "hero_copy",
+        variants: [
+          { id: "control",    label: "コントロール（30秒で概算見積が分かる）" },
+          { id: "challenger", label: "チャレンジャー（費用・納期をその場で確認）" },
+        ],
+      },
+      {
+        id: "hero_cta",
+        variants: [
+          { id: "control",    label: "コントロール（シミュレーターを使う）" },
+          { id: "challenger", label: "チャレンジャー（今すぐ無料で見積もる）" },
+        ],
+      },
+    ];
+
+    const tbody = document.getElementById("abtestBody");
+    tbody.innerHTML = tests.map((test) => {
+      const variantId = stored[test.id] || "(未割り当て)";
+      const variant   = test.variants.find((v) => v.id === variantId);
+      const label     = variant ? variant.label : variantId;
+      const badgeClass = variantId === "challenger" ? "variant-badge--challenger" : "variant-badge--control";
+      const displayId  = variantId === "(未割り当て)" ? variantId : variantId;
+      return `
+        <tr>
+          <td><code>${esc(test.id)}</code></td>
+          <td>${esc(AB_TEST_LABELS[test.id] || test.id)}</td>
+          <td><span class="variant-badge ${variantId !== "(未割り当て)" ? badgeClass : ""}">${esc(displayId)}</span></td>
+          <td style="color:var(--color-text-sub)">${esc(label)}</td>
+        </tr>`;
+    }).join("");
+  }
+
+  // ─── CSVエクスポート ───────────────────────────────────────
+  function exportCSV() {
+    const all = getInquiries();
+    if (!all.length) { alert("データがありません"); return; }
+    const header = ["#", "受付日時", "お名前", "メール", "電話", "見積内容", "相談内容"];
+    const rows   = all.map((d, i) => [
+      i + 1,
+      new Date(d.timestamp).toLocaleString("ja-JP"),
+      d.name, d.email,
+      d.phone || "",
+      (d.quote  || "").replace(/\n/g, " "),
+      (d.message|| "").replace(/\n/g, " "),
+    ]);
+    const csv = [header, ...rows]
+      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\r\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const a    = Object.assign(document.createElement("a"), {
+      href:     URL.createObjectURL(blob),
+      download: `ads_inquiries_${new Date().toISOString().slice(0,10)}.csv`,
+    });
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // ─── ユーティリティ ────────────────────────────────────────
+  function esc(str) {
+    return String(str ?? "")
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+      .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+  </script>
+</body>
+</html>

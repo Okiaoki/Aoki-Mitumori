@@ -1,0 +1,40 @@
+# ============================================================
+# _headers - Netlify / Vercel security and cache settings
+# v2.1 note: JS/CSS/locales are not content-hashed yet, so keep TTLs short.
+# ============================================================
+
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://www.google.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.emailjs.com https://assets.calendly.com https://browser.sentry-cdn.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.emailjs.com https://www.google-analytics.com https://cdn.jsdelivr.net https://sentry.io; frame-src https://calendly.com; object-src 'none'; base-uri 'self'; form-action 'self' https://api.emailjs.com;
+
+/
+  Cache-Control: no-cache, must-revalidate
+
+/*.html
+  Cache-Control: no-cache, must-revalidate
+
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/manifest.json
+  Cache-Control: no-cache, must-revalidate
+
+/js/*
+  Cache-Control: public, max-age=300, must-revalidate
+
+/css/*
+  Cache-Control: public, max-age=300, must-revalidate
+
+/locales/*
+  Cache-Control: public, max-age=300, must-revalidate
+
+/assets/*
+  Cache-Control: public, max-age=604800
+
+# admin.html should remain non-indexed even when publicly reachable.
+/admin.html
+  X-Robots-Tag: noindex, nofollow
